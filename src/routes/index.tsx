@@ -75,11 +75,11 @@ const services: Service[] = [
     name: "Barba + Barboterapia",
     price: "R$ 90,00",
     duration: "40 min",
-    image: "/assets/servico-barba-barboterapia.jpeg",
+    video: "/assets/galeria-experiencia-seu-jose.mp4",
   },
   {
     category: "barba",
-    name: "Barba + Ozônio terapia",
+    name: "Barba + Ozônioterapia",
     price: "R$ 80,00",
     duration: "30 min",
     video: "/assets/barba-ozonio-terapia-2026.mp4",
@@ -1184,7 +1184,7 @@ function Index() {
                     loop
                     playsInline
                     preload="metadata"
-                    aria-label="Barba + Ozônio terapia na Barbearia Seu José"
+                    aria-label="Barba + Ozônioterapia na Barbearia Seu José"
                     className="h-full w-full object-cover grayscale group-hover:grayscale-0 transition-[filter] duration-700"
                   >
                     <source src="/assets/barba-ozonio-terapia-2026.mp4" type="video/mp4" />
@@ -1194,7 +1194,7 @@ function Index() {
                       O cuidado em cada etapa
                     </span>
                     <h3 className="mt-2 font-serif text-2xl text-cream md:text-3xl">
-                      Barba + Ozônio terapia
+                      Barba + Ozônioterapia
                     </h3>
                   </figcaption>
                 </motion.figure>
