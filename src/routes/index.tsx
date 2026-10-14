@@ -235,8 +235,8 @@ function playMutedVideo(video: HTMLVideoElement) {
     .then(() => {
       video.controls = false;
     })
-    .catch(() => {
-      video.controls = true;
+    .catch((error: unknown) => {
+      video.controls = error instanceof DOMException && error.name === "NotAllowedError";
     });
 }
 
