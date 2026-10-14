@@ -229,7 +229,8 @@ const navLinks = [
 function LazyServiceMedia({ service }: { service: Service }) {
   const mediaRef = useRef<HTMLVideoElement>(null);
   const [isNearViewport, setIsNearViewport] = useState(false);
-  const [hasLoaded, setHasLoaded] = useState(false);
+  const [isReady, setIsReady] = useState(false);
+  const [hasError, setHasError] = useState(false);
   const prefersReducedMotion = useReducedMotion();
 
   useEffect(() => {
@@ -240,7 +241,6 @@ function LazyServiceMedia({ service }: { service: Service }) {
       ([entry]) => {
         const visible = entry?.isIntersecting ?? false;
         setIsNearViewport(visible);
-        if (visible) setHasLoaded(true);
       },
       { rootMargin: "240px 0px" },
     );
@@ -254,11 +254,12 @@ function LazyServiceMedia({ service }: { service: Service }) {
     if (!media || !service.video) return;
 
     if (isNearViewport) {
-      if (!prefersReducedMotion) void media.play().catch(() => undefined);
+      if (!isReady) media.load();
+      else if (!prefersReducedMotion) void media.play().catch(() => undefined);
     } else {
       media.pause();
     }
-  }, [isNearViewport, prefersReducedMotion, service.video]);
+  }, [isNearViewport, isReady, prefersReducedMotion, service.video]);
 
   if (service.image) {
     return (
@@ -287,18 +288,37 @@ function LazyServiceMedia({ service }: { service: Service }) {
   }
 
   return (
-    <video
-      ref={mediaRef}
-      muted
-      loop
-      playsInline
-      preload="none"
-      poster="/assets/poster_tradicao.jpg"
-      aria-label={`Vídeo do serviço ${service.name}`}
-      className="h-full w-full object-cover grayscale transition-all duration-700 group-hover:scale-105 group-hover:grayscale-0"
-    >
-      {hasLoaded && <source src={service.video} type="video/mp4" />}
-    </video>
+    <div className="relative h-full w-full bg-forest-deep">
+      {!isReady && (
+        <div className="absolute inset-0 flex items-center justify-center" aria-hidden="true">
+          <img src="/assets/logo.png" alt="" className="h-16 w-16 rounded-full opacity-45" />
+        </div>
+      )}
+      <video
+        key={service.video}
+        ref={mediaRef}
+        src={service.video}
+        muted
+        loop
+        playsInline
+        preload="none"
+        onLoadedData={() => {
+          setIsReady(true);
+          setHasError(false);
+        }}
+        onError={() => {
+          setIsReady(false);
+          setHasError(true);
+        }}
+        aria-label={`Vídeo do serviço ${service.name}`}
+        className={`h-full w-full object-cover grayscale transition-all duration-700 group-hover:scale-105 group-hover:grayscale-0 ${isReady ? "opacity-100" : "opacity-0"}`}
+      />
+      {hasError && (
+        <span className="absolute inset-x-4 bottom-4 text-center text-xs text-cream/60">
+          Vídeo indisponível
+        </span>
+      )}
+    </div>
   );
 }
 
@@ -387,16 +407,24 @@ function Index() {
       ozoneGalleryVideoRef.current,
       experienceVideoRef.current,
     ].filter((video): video is HTMLVideoElement => video !== null);
-    const observer = new IntersectionObserver((entries) => {
-      for (const entry of entries) {
-        const video = entry.target as HTMLVideoElement;
-        if (entry.isIntersecting && isPageVisible && !prefersReducedMotion) {
-          void video.play().catch(() => undefined);
-        } else {
-          video.pause();
+    const observer = new IntersectionObserver(
+      (entries) => {
+        for (const entry of entries) {
+          const video = entry.target as HTMLVideoElement;
+          if (entry.isIntersecting && isPageVisible && !prefersReducedMotion) {
+            const lazySrc = video.dataset["src"];
+            if (lazySrc && !video.getAttribute("src")) {
+              video.src = lazySrc;
+              video.load();
+            }
+            void video.play().catch(() => undefined);
+          } else {
+            video.pause();
+          }
         }
-      }
-    });
+      },
+      { rootMargin: "400px 0px" },
+    );
     videos.forEach((video) => observer.observe(video));
     return () => observer.disconnect();
   }, [prefersReducedMotion, isPageVisible]);
@@ -646,7 +674,6 @@ function Index() {
               >
                 <source src={"/assets/video_institucional_1.mp4"} type="video/mp4" />
               </motion.video>
-
             </div>
 
             <div className="hero-content relative z-20 w-full max-w-6xl space-y-8">
@@ -1180,15 +1207,14 @@ function Index() {
                 >
                   <video
                     ref={ozoneGalleryVideoRef}
+                    data-src="/assets/barba-ozonio-terapia-2026.mp4"
                     muted
                     loop
                     playsInline
-                    preload="metadata"
+                    preload="none"
                     aria-label="Barba + Ozônioterapia na Barbearia Seu José"
                     className="h-full w-full object-cover grayscale group-hover:grayscale-0 transition-[filter] duration-700"
-                  >
-                    <source src="/assets/barba-ozonio-terapia-2026.mp4" type="video/mp4" />
-                  </video>
+                  />
                   <figcaption className="pointer-events-none absolute inset-x-0 top-0 bg-gradient-to-b from-black/80 to-transparent p-6 pb-16 md:p-8 md:pb-20">
                     <span className="text-[10px] uppercase tracking-[0.25em] text-gold">
                       O cuidado em cada etapa
@@ -1343,13 +1369,24 @@ function Index() {
                     {...fadeInUp}
                     className={`group relative overflow-hidden border border-gold/15 bg-forest transition-colors duration-500 hover:border-gold/50 ${photo.wide ? "col-span-2 aspect-[16/10]" : "aspect-[4/5]"}`}
                   >
-                    <img
-                      src={photo.src}
-                      alt={photo.title}
-                      loading="lazy"
-                      decoding="async"
-                      className="h-full w-full object-cover grayscale transition-all duration-700 group-hover:scale-105 group-hover:grayscale-0"
-                    />
+                    <picture className="block h-full w-full">
+                      <source
+                        srcSet={`${photo.src.replace(/\.(?:jpe?g)$/i, ".gallery-480.webp")} 480w, ${photo.src.replace(/\.(?:jpe?g)$/i, ".gallery.webp")} 960w`}
+                        type="image/webp"
+                      />
+                      <img
+                        src={photo.src}
+                        alt={photo.title}
+                        loading="lazy"
+                        decoding="async"
+                        sizes={
+                          photo.wide
+                            ? "(min-width: 768px) 50vw, 100vw"
+                            : "(min-width: 768px) 25vw, 50vw"
+                        }
+                        className="h-full w-full object-cover grayscale transition-all duration-700 group-hover:scale-105 group-hover:grayscale-0"
+                      />
+                    </picture>
                     <figcaption className="pointer-events-none absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent px-4 pb-4 pt-16 md:px-6 md:pb-6">
                       <span className="text-[9px] font-bold uppercase tracking-[0.2em] text-gold">
                         {photo.label}
@@ -1378,15 +1415,14 @@ function Index() {
                   >
                     <video
                       ref={video.ref}
+                      data-src={video.src}
                       muted
                       loop
                       playsInline
                       preload="none"
                       aria-label={video.title}
                       className="h-full w-full object-cover grayscale transition-all duration-700 group-hover:grayscale-0"
-                    >
-                      <source src={video.src} type="video/mp4" />
-                    </video>
+                    />
                     <figcaption className="pointer-events-none absolute inset-x-0 top-0 bg-gradient-to-b from-black/70 to-transparent p-5 pb-12 font-serif text-xl text-cream">
                       {video.title}
                     </figcaption>
