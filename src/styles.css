@@ -130,6 +130,7 @@
   .reviews-track {
     display: flex;
     width: max-content;
+    transform: translate3d(0, 0, 0);
     will-change: transform;
     animation: reviews-scroll 34s linear infinite;
   }
@@ -144,9 +145,19 @@
     width: min(82vw, 24rem);
   }
 
-  .reviews-carousel:hover .reviews-track,
-  .reviews-carousel:focus-within .reviews-track {
-    animation-play-state: paused !important;
+  .gallery-media {
+    backface-visibility: hidden;
+    transform: translateZ(0) scale(1.001);
+    transition:
+      transform 900ms cubic-bezier(0.22, 1, 0.36, 1),
+      filter 900ms cubic-bezier(0.22, 1, 0.36, 1);
+    will-change: transform, filter;
+  }
+
+  .group:hover .gallery-media,
+  .group:focus-within .gallery-media {
+    filter: grayscale(0);
+    transform: translateZ(0) scale(1.035);
   }
 }
 
@@ -176,7 +187,7 @@
 
 @keyframes reviews-scroll {
   to {
-    transform: translateX(-50%);
+    transform: translate3d(-50%, 0, 0);
   }
 }
 

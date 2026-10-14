@@ -364,6 +364,14 @@ const fadeInUp = {
   transition: { duration: 0.6 },
 };
 
+const galleryReveal = {
+  initial: { opacity: 0, y: 28, scale: 0.985 },
+  whileInView: { opacity: 1, y: 0, scale: 1 },
+  viewport: { once: true, amount: 0.12 },
+};
+
+const carouselReviews = reviews.slice(0, 32);
+
 function revealTouchedMedia(event: TouchEvent<HTMLElement>) {
   const touch = event.touches[0];
   if (!touch) return;
@@ -496,8 +504,7 @@ function Index() {
     };
   }, [isMenuOpen]);
 
-  const shouldPauseReviews =
-    areReviewsPaused || !areReviewsVisible || !isPageVisible || prefersReducedMotion;
+  const shouldPauseReviews = areReviewsPaused || !areReviewsVisible || !isPageVisible;
 
   return (
     <MotionConfig reducedMotion="user">
@@ -1097,19 +1104,19 @@ function Index() {
                 <div
                   className="reviews-track"
                   style={{
-                    animationDuration: `${reviews.length * 6.8}s`,
+                    animationDuration: `${carouselReviews.length * 4.2}s`,
                     animationPlayState: shouldPauseReviews ? "paused" : "running",
                   }}
                 >
                   <div className="reviews-group" role="list">
-                    {reviews.map((review) => (
+                    {carouselReviews.map((review) => (
                       <div role="listitem" key={`${review.name}-${review.date}`}>
                         <ReviewCard review={review} />
                       </div>
                     ))}
                   </div>
                   <div className="reviews-group" aria-hidden="true">
-                    {reviews.map((review) => (
+                    {carouselReviews.map((review) => (
                       <div key={`duplicate-${review.name}-${review.date}`}>
                         <ReviewCard review={review} />
                       </div>
@@ -1215,7 +1222,8 @@ function Index() {
               </motion.div>
               <div data-gallery-grid className="grid grid-cols-2 gap-3 md:grid-cols-4 md:gap-5">
                 <motion.figure
-                  {...fadeInUp}
+                  {...galleryReveal}
+                  transition={{ duration: 0.78, ease: [0.22, 1, 0.36, 1] }}
                   className="group relative col-span-2 row-span-2 overflow-hidden border border-gold/25 bg-forest aspect-[4/5]"
                 >
                   <video
@@ -1226,7 +1234,7 @@ function Index() {
                     playsInline
                     preload="none"
                     aria-label="Barba + Ozônioterapia na Barbearia Seu José"
-                    className="h-full w-full object-cover grayscale group-hover:grayscale-0 transition-[filter] duration-700"
+                    className="gallery-media h-full w-full object-cover grayscale"
                   />
                   <figcaption className="pointer-events-none absolute inset-x-0 top-0 bg-gradient-to-b from-black/80 to-transparent p-6 pb-16 md:p-8 md:pb-20">
                     <span className="text-[10px] uppercase tracking-[0.25em] text-gold">
@@ -1376,10 +1384,15 @@ function Index() {
                     title: "Precisão na navalha",
                     label: "Barba",
                   },
-                ].map((photo) => (
+                ].map((photo, index) => (
                   <motion.figure
                     key={photo.src}
-                    {...fadeInUp}
+                    {...galleryReveal}
+                    transition={{
+                      duration: 0.78,
+                      delay: (index % 4) * 0.055,
+                      ease: [0.22, 1, 0.36, 1],
+                    }}
                     className={`group relative overflow-hidden border border-gold/15 bg-forest transition-colors duration-500 hover:border-gold/50 ${photo.wide ? "col-span-2 aspect-[16/10]" : "aspect-[4/5]"}`}
                   >
                     <picture className="block h-full w-full">
@@ -1402,7 +1415,7 @@ function Index() {
                             ? "(min-width: 768px) 50vw, 100vw"
                             : "(min-width: 768px) 25vw, 50vw"
                         }
-                        className="h-full w-full object-cover grayscale transition-all duration-700 group-hover:scale-105 group-hover:grayscale-0"
+                        className="gallery-media h-full w-full object-cover grayscale"
                       />
                     </picture>
                     <figcaption className="pointer-events-none absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent px-4 pb-4 pt-16 md:px-6 md:pb-6">
@@ -1426,9 +1439,15 @@ function Index() {
                     title: "Viva essa experiência",
                     ref: experienceVideoRef,
                   },
-                ].map((video) => (
-                  <figure
+                ].map((video, index) => (
+                  <motion.figure
                     key={video.src}
+                    {...galleryReveal}
+                    transition={{
+                      duration: 0.78,
+                      delay: index * 0.07,
+                      ease: [0.22, 1, 0.36, 1],
+                    }}
                     className="group relative col-span-2 aspect-video overflow-hidden border border-gold/15 bg-forest"
                   >
                     <video
@@ -1439,12 +1458,12 @@ function Index() {
                       playsInline
                       preload="none"
                       aria-label={video.title}
-                      className="h-full w-full object-cover grayscale transition-all duration-700 group-hover:grayscale-0"
+                      className="gallery-media h-full w-full object-cover grayscale"
                     />
                     <figcaption className="pointer-events-none absolute inset-x-0 top-0 bg-gradient-to-b from-black/70 to-transparent p-5 pb-12 font-serif text-xl text-cream">
                       {video.title}
                     </figcaption>
-                  </figure>
+                  </motion.figure>
                 ))}
               </div>
             </div>
