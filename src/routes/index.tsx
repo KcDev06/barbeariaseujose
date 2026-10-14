@@ -395,12 +395,17 @@ function revealTouchedMedia(event: TouchEvent<HTMLElement>) {
 
     let element: HTMLElement | null = media;
     while (element && element !== event.currentTarget) {
-      if (element.classList.contains("grayscale")) {
+      if (element.classList.contains("grayscale") || element.classList.contains("gallery-media")) {
         element.dataset["touchColor"] = "true";
       }
       element = element.parentElement;
     }
   });
+}
+
+function activateGalleryMedia(event: ReactMouseEvent<HTMLElement>) {
+  const media = event.currentTarget.querySelector<HTMLElement>(".gallery-media");
+  if (media) media.dataset["touchColor"] = "true";
 }
 
 function Index() {
@@ -1286,7 +1291,8 @@ function Index() {
                 <motion.figure
                   {...galleryReveal}
                   transition={{ duration: 0.78, ease: [0.22, 1, 0.36, 1] }}
-                  className="group relative col-span-2 row-span-2 overflow-hidden border border-gold/25 bg-forest aspect-[4/5]"
+                  onClick={activateGalleryMedia}
+                  className="group relative col-span-2 row-span-2 aspect-[4/5] cursor-pointer overflow-hidden border border-gold/25 bg-forest"
                 >
                   <video
                     ref={ozoneGalleryVideoRef}
@@ -1296,7 +1302,7 @@ function Index() {
                     playsInline
                     preload="none"
                     aria-label="Barba + Ozônioterapia na Barbearia Seu José"
-                    className="gallery-media h-full w-full object-cover grayscale"
+                    className="gallery-media h-full w-full object-cover"
                   />
                   <figcaption className="pointer-events-none absolute inset-x-0 top-0 bg-gradient-to-b from-black/80 to-transparent p-6 pb-16 md:p-8 md:pb-20">
                     <span className="text-[10px] uppercase tracking-[0.25em] text-gold">
@@ -1455,7 +1461,8 @@ function Index() {
                       delay: (index % 4) * 0.055,
                       ease: [0.22, 1, 0.36, 1],
                     }}
-                    className={`group relative overflow-hidden border border-gold/15 bg-forest transition-colors duration-500 hover:border-gold/50 ${photo.wide ? "col-span-2 aspect-[16/10]" : "aspect-[4/5]"}`}
+                    onClick={activateGalleryMedia}
+                    className={`group relative cursor-pointer overflow-hidden border border-gold/15 bg-forest transition-colors duration-500 hover:border-gold/50 ${photo.wide ? "col-span-2 aspect-[16/10]" : "aspect-[4/5]"}`}
                   >
                     <picture className="block h-full w-full">
                       <source
@@ -1477,7 +1484,7 @@ function Index() {
                             ? "(min-width: 768px) 50vw, 100vw"
                             : "(min-width: 768px) 25vw, 50vw"
                         }
-                        className="gallery-media h-full w-full object-cover grayscale"
+                        className="gallery-media h-full w-full object-cover"
                       />
                     </picture>
                     <figcaption className="pointer-events-none absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent px-4 pb-4 pt-16 md:px-6 md:pb-6">
@@ -1510,7 +1517,8 @@ function Index() {
                       delay: index * 0.07,
                       ease: [0.22, 1, 0.36, 1],
                     }}
-                    className="group relative col-span-2 aspect-video overflow-hidden border border-gold/15 bg-forest"
+                    onClick={activateGalleryMedia}
+                    className="group relative col-span-2 aspect-video cursor-pointer overflow-hidden border border-gold/15 bg-forest"
                   >
                     <video
                       ref={video.ref}
@@ -1520,7 +1528,7 @@ function Index() {
                       playsInline
                       preload="none"
                       aria-label={video.title}
-                      className="gallery-media h-full w-full object-cover grayscale"
+                      className="gallery-media h-full w-full object-cover"
                     />
                     <figcaption className="pointer-events-none absolute inset-x-0 top-0 bg-gradient-to-b from-black/70 to-transparent p-5 pb-12 font-serif text-xl text-cream">
                       {video.title}
