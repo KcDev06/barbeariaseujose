@@ -1,6 +1,12 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { AnimatePresence, motion, MotionConfig, useReducedMotion, useScroll } from "framer-motion";
-import { useRef, useState, useEffect, type TouchEvent } from "react";
+import {
+  useRef,
+  useState,
+  useEffect,
+  type MouseEvent as ReactMouseEvent,
+  type TouchEvent,
+} from "react";
 import {
   Scissors,
   Star,
@@ -218,7 +224,7 @@ const paymentMethods = [
 const navLinks = [
   { label: "Home", href: "#home" },
   { label: "Sobre", href: "#sobre" },
-  { label: "Serviços", href: "#serviços" },
+  { label: "Serviços", href: "#servicos" },
   { label: "Assinatura", href: "#assinatura" },
   { label: "Equipe", href: "#equipe" },
   { label: "Avaliações", href: "#avaliacoes" },
@@ -400,6 +406,7 @@ function revealTouchedMedia(event: TouchEvent<HTMLElement>) {
 function Index() {
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [activeSection, setActiveSection] = useState("#home");
   const [areReviewsPaused, setAreReviewsPaused] = useState(false);
   const [isPageVisible, setIsPageVisible] = useState(true);
   const [activeServiceCategory, setActiveServiceCategory] = useState<ServiceCategory>("barba");
@@ -419,6 +426,22 @@ function Index() {
     handleScroll();
     window.addEventListener("scroll", handleScroll, { passive: true });
     return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
+
+  useEffect(() => {
+    const sections = navLinks
+      .map(({ href }) => document.getElementById(href.slice(1)))
+      .filter((section): section is HTMLElement => section !== null);
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const visibleSection = entries.find((entry) => entry.isIntersecting);
+        if (visibleSection) setActiveSection(`#${visibleSection.target.id}`);
+      },
+      { rootMargin: "-18% 0px -70% 0px", threshold: 0 },
+    );
+
+    sections.forEach((section) => observer.observe(section));
+    return () => observer.disconnect();
   }, []);
 
   useEffect(() => {
@@ -504,6 +527,27 @@ function Index() {
     };
   }, [isMenuOpen]);
 
+  const handleSectionNavigation = (event: ReactMouseEvent<HTMLAnchorElement>, href: string) => {
+    if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey)
+      return;
+
+    const target = document.getElementById(href.slice(1));
+    if (!target) return;
+
+    event.preventDefault();
+    setIsMenuOpen(false);
+    setActiveSection(href);
+    window.history.pushState(null, "", href);
+    window.requestAnimationFrame(() =>
+      window.requestAnimationFrame(() =>
+        target.scrollIntoView({
+          behavior: prefersReducedMotion ? "auto" : "smooth",
+          block: "start",
+        }),
+      ),
+    );
+  };
+
   const shouldPauseReviews = areReviewsPaused || !areReviewsVisible || !isPageVisible;
 
   return (
@@ -518,72 +562,80 @@ function Index() {
         {/* Navbar */}
         <nav
           aria-label="Navegação principal"
-          className={`fixed top-0 left-0 right-0 z-50 transition-all duration-500 py-4 px-6 md:px-12 flex items-center justify-between ${isScrolled ? "bg-forest-deep/95 backdrop-blur-md shadow-2xl py-3 border-b border-gold/10" : "bg-transparent"}`}
+          className={`fixed inset-x-0 top-0 z-50 border-b px-4 transition-all duration-500 md:px-6 2xl:px-10 ${isScrolled || isMenuOpen ? "border-gold/10 bg-forest-deep/95 py-3 shadow-2xl backdrop-blur-md" : "border-transparent bg-transparent py-4"}`}
         >
-          <motion.div
-            initial={{ opacity: 0, x: -20 }}
-            animate={{ opacity: 1, x: 0 }}
-            className="flex items-center gap-3 md:gap-4"
-          >
-            <img
-              src={"/assets/logo.png"}
-              alt="Logo Barbearia Seu José"
-              className="w-12 h-12 md:w-16 md:h-16 rounded-full border border-gold/30 shadow-gold/20 shadow-lg"
-            />
-            <div className="flex flex-col leading-none">
-              <span className="font-serif text-lg md:text-2xl tracking-tighter uppercase text-cream">
-                Barbearia
-              </span>
-              <span className="mt-1 text-[8px] md:text-[10px] uppercase tracking-[0.35em] md:tracking-[0.5em] text-gold font-bold">
-                Seu José
-              </span>
+          <div className="mx-auto flex w-full max-w-[100rem] items-center justify-between gap-4">
+            <a
+              href="#home"
+              onClick={(event) => handleSectionNavigation(event, "#home")}
+              className="flex shrink-0 items-center gap-3 md:gap-4 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold"
+              aria-label="Ir para o início"
+            >
+              <img
+                src={"/assets/logo.png"}
+                alt=""
+                className="h-12 w-12 rounded-full border border-gold/30 shadow-lg shadow-gold/20 md:h-14 md:w-14 2xl:h-16 2xl:w-16"
+              />
+              <div className="flex flex-col leading-none">
+                <span className="font-serif text-lg uppercase tracking-tighter text-cream md:text-xl 2xl:text-2xl">
+                  Barbearia
+                </span>
+                <span className="mt-1 text-[8px] font-bold uppercase tracking-[0.35em] text-gold md:text-[9px] 2xl:text-[10px] 2xl:tracking-[0.5em]">
+                  Seu José
+                </span>
+              </div>
+            </a>
+
+            <div className="hidden items-center gap-3 text-[11px] font-bold uppercase tracking-[0.13em] xl:flex 2xl:gap-5 2xl:text-xs 2xl:tracking-widest">
+              {navLinks.map((item) => {
+                const isActive = activeSection === item.href;
+                return (
+                  <a
+                    key={item.href}
+                    href={item.href}
+                    onClick={(event) => handleSectionNavigation(event, item.href)}
+                    aria-current={isActive ? "location" : undefined}
+                    className={`relative py-3 transition-colors duration-300 after:absolute after:inset-x-0 after:bottom-1 after:h-px after:origin-left after:bg-gold after:transition-transform after:duration-300 ${isActive ? "text-gold after:scale-x-100" : "text-cream/80 after:scale-x-0 hover:text-gold hover:after:scale-x-100"}`}
+                  >
+                    {item.label}
+                  </a>
+                );
+              })}
+              <Button size="sm" variant="premium" className="shrink-0" asChild>
+                <a
+                  href={whatsappUrl(DEFAULT_WHATSAPP_MESSAGE)}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  Agendar
+                </a>
+              </Button>
             </div>
-          </motion.div>
 
-          <div className="hidden xl:flex gap-5 items-center text-sm font-bold uppercase tracking-widest">
-            {navLinks.map((item) => (
-              <a
-                key={item.href}
-                href={item.href}
-                className="hover:text-gold transition-colors duration-300"
-              >
-                {item.label}
-              </a>
-            ))}
-            <Button size="sm" variant="premium" asChild>
-              <a
-                href={whatsappUrl(DEFAULT_WHATSAPP_MESSAGE)}
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                Agendar
-              </a>
-            </Button>
+            <button
+              ref={menuButtonRef}
+              type="button"
+              className="relative grid h-11 w-11 shrink-0 place-items-center border border-gold/25 bg-forest-deep/70 text-gold backdrop-blur-md transition-colors hover:border-gold/60 hover:bg-gold hover:text-forest-deep focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold xl:hidden"
+              onClick={() => setIsMenuOpen((open) => !open)}
+              aria-expanded={isMenuOpen}
+              aria-controls="mobile-menu"
+              aria-label={isMenuOpen ? "Fechar menu" : "Abrir menu"}
+            >
+              <AnimatePresence mode="wait" initial={false}>
+                <motion.span
+                  key={isMenuOpen ? "close" : "open"}
+                  initial={{ opacity: 0, rotate: -45, scale: 0.8 }}
+                  animate={{ opacity: 1, rotate: 0, scale: 1 }}
+                  exit={{ opacity: 0, rotate: 45, scale: 0.8 }}
+                  transition={{ duration: 0.18 }}
+                  className="absolute"
+                  aria-hidden="true"
+                >
+                  {isMenuOpen ? <X size={24} /> : <Menu size={24} />}
+                </motion.span>
+              </AnimatePresence>
+            </button>
           </div>
-
-          <button
-            ref={menuButtonRef}
-            type="button"
-            className="relative grid h-11 w-11 place-items-center border border-gold/25 bg-forest-deep/70 text-gold backdrop-blur-md transition-colors hover:border-gold/60 hover:bg-gold hover:text-forest-deep focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold xl:hidden"
-            onClick={() => setIsMenuOpen(!isMenuOpen)}
-            aria-expanded={isMenuOpen}
-            aria-controls="mobile-menu"
-            aria-label={isMenuOpen ? "Fechar menu" : "Abrir menu"}
-          >
-            <AnimatePresence mode="wait" initial={false}>
-              <motion.span
-                key={isMenuOpen ? "close" : "open"}
-                initial={{ opacity: 0, rotate: -45, scale: 0.8 }}
-                animate={{ opacity: 1, rotate: 0, scale: 1 }}
-                exit={{ opacity: 0, rotate: 45, scale: 0.8 }}
-                transition={{ duration: 0.18 }}
-                className="absolute"
-                aria-hidden="true"
-              >
-                {isMenuOpen ? <X size={24} /> : <Menu size={24} />}
-              </motion.span>
-            </AnimatePresence>
-          </button>
         </nav>
 
         {/* Mobile Menu */}
@@ -617,31 +669,37 @@ function Index() {
                     <p className="mt-1 text-xs text-cream/45">Barbearia Seu José</p>
                   </div>
                   <span className="font-serif text-xl italic text-cream/30" aria-hidden="true">
-                    01—07
+                    01—08
                   </span>
                 </div>
 
                 <nav aria-label="Navegação principal no celular">
-                  {navLinks.map((item, index) => (
-                    <motion.a
-                      key={item.href}
-                      href={item.href}
-                      onClick={() => setIsMenuOpen(false)}
-                      initial={{ opacity: 0, x: -16 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      transition={{ duration: 0.3, delay: 0.035 * index }}
-                      whileTap={{ scale: 0.985 }}
-                      className="mobile-menu-link group flex min-h-12 items-center border-b border-cream/[0.07] py-2 text-cream transition-colors hover:border-gold/30 hover:text-gold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-gold"
-                    >
-                      <span className="w-9 text-[9px] font-bold tracking-widest text-gold/50">
-                        {String(index + 1).padStart(2, "0")}
-                      </span>
-                      <span className="font-serif text-[1.35rem] font-bold tracking-tight">
-                        {item.label}
-                      </span>
-                      <span className="ml-auto h-px w-5 origin-right bg-gold/35 transition-transform duration-300 group-hover:scale-x-150" />
-                    </motion.a>
-                  ))}
+                  {navLinks.map((item, index) => {
+                    const isActive = activeSection === item.href;
+                    return (
+                      <motion.a
+                        key={item.href}
+                        href={item.href}
+                        onClick={(event) => handleSectionNavigation(event, item.href)}
+                        aria-current={isActive ? "location" : undefined}
+                        initial={{ opacity: 0, x: -16 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{ duration: 0.3, delay: 0.035 * index }}
+                        whileTap={{ scale: 0.985 }}
+                        className={`mobile-menu-link group flex min-h-12 items-center border-b py-2 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-gold ${isActive ? "border-gold/35 text-gold" : "border-cream/[0.07] text-cream hover:border-gold/30 hover:text-gold"}`}
+                      >
+                        <span className="w-9 text-[9px] font-bold tracking-widest text-gold/50">
+                          {String(index + 1).padStart(2, "0")}
+                        </span>
+                        <span className="font-serif text-[1.35rem] font-bold tracking-tight">
+                          {item.label}
+                        </span>
+                        <span
+                          className={`ml-auto h-px origin-right bg-gold/50 transition-all duration-300 ${isActive ? "w-8" : "w-5 group-hover:scale-x-150"}`}
+                        />
+                      </motion.a>
+                    );
+                  })}
                 </nav>
 
                 <a
@@ -728,7 +786,12 @@ function Index() {
                   className="rounded-none px-12 border-cream/20 text-cream"
                   asChild
                 >
-                  <a href="#serviços">Nossos Serviços</a>
+                  <a
+                    href="#servicos"
+                    onClick={(event) => handleSectionNavigation(event, "#servicos")}
+                  >
+                    Nossos Serviços
+                  </a>
                 </Button>
               </div>
             </div>
@@ -804,7 +867,7 @@ function Index() {
           </section>
 
           {/* 5. Serviços com Layout Dinâmico */}
-          <section id="serviços" className="py-32 bg-forest px-6 md:px-12 relative overflow-hidden">
+          <section id="servicos" className="py-32 bg-forest px-6 md:px-12 relative overflow-hidden">
             <div className="max-w-7xl mx-auto flex flex-col gap-12 md:gap-16">
               <motion.div {...fadeInUp} className="max-w-3xl">
                 <h2 className="text-5xl md:text-8xl font-serif uppercase tracking-tighter leading-[0.8]">
@@ -1131,17 +1194,16 @@ function Index() {
 
           {/* Atalho flutuante para horários */}
           <div className="fixed top-24 right-6 z-50">
-            <motion.a
+            <a
               href="#contato"
-              initial={{ x: 100 }}
-              animate={{ x: 0 }}
+              onClick={(event) => handleSectionNavigation(event, "#contato")}
               className="bg-forest-deep/80 backdrop-blur-md border border-gold/30 px-4 py-2 flex items-center gap-3"
             >
               <Clock size={14} className="text-gold" aria-hidden="true" />
               <span className="text-[10px] font-bold uppercase tracking-widest text-gold">
                 Ver horários
               </span>
-            </motion.a>
+            </a>
           </div>
 
           {/* Floating CTA (WhatsApp Pulse) */}
