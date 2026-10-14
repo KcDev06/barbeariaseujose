@@ -226,12 +226,25 @@ const navLinks = [
   { label: "Contato", href: "#contato" },
 ];
 
+function playMutedVideo(video: HTMLVideoElement) {
+  video.muted = true;
+  video.defaultMuted = true;
+  video.playsInline = true;
+  void video
+    .play()
+    .then(() => {
+      video.controls = false;
+    })
+    .catch(() => {
+      video.controls = true;
+    });
+}
+
 function LazyServiceMedia({ service }: { service: Service }) {
   const mediaRef = useRef<HTMLVideoElement>(null);
   const [isNearViewport, setIsNearViewport] = useState(false);
   const [isReady, setIsReady] = useState(false);
   const [hasError, setHasError] = useState(false);
-  const prefersReducedMotion = useReducedMotion();
 
   useEffect(() => {
     const media = mediaRef.current;
@@ -255,11 +268,11 @@ function LazyServiceMedia({ service }: { service: Service }) {
 
     if (isNearViewport) {
       if (!isReady) media.load();
-      else if (!prefersReducedMotion) void media.play().catch(() => undefined);
+      else playMutedVideo(media);
     } else {
       media.pause();
     }
-  }, [isNearViewport, isReady, prefersReducedMotion, service.video]);
+  }, [isNearViewport, isReady, service.video]);
 
   if (service.image) {
     return (
@@ -411,13 +424,13 @@ function Index() {
       (entries) => {
         for (const entry of entries) {
           const video = entry.target as HTMLVideoElement;
-          if (entry.isIntersecting && isPageVisible && !prefersReducedMotion) {
+          if (entry.isIntersecting && isPageVisible) {
             const lazySrc = video.dataset["src"];
             if (lazySrc && !video.getAttribute("src")) {
               video.src = lazySrc;
               video.load();
             }
-            void video.play().catch(() => undefined);
+            playMutedVideo(video);
           } else {
             video.pause();
           }
@@ -427,7 +440,7 @@ function Index() {
     );
     videos.forEach((video) => observer.observe(video));
     return () => observer.disconnect();
-  }, [prefersReducedMotion, isPageVisible]);
+  }, [isPageVisible]);
 
   useEffect(() => {
     const reviewsElement = reviewsRef.current;
@@ -659,7 +672,7 @@ function Index() {
               <div className="absolute inset-0 bg-dark-gradient z-10" />
               <motion.video
                 ref={videoRef}
-                autoPlay={!prefersReducedMotion}
+                autoPlay
                 muted
                 loop
                 playsInline
@@ -1379,6 +1392,11 @@ function Index() {
                         alt={photo.title}
                         loading="lazy"
                         decoding="async"
+                        onError={(event) => {
+                          const image = event.currentTarget;
+                          image.parentElement?.querySelector("source")?.remove();
+                          if (!image.src.endsWith(photo.src)) image.src = photo.src;
+                        }}
                         sizes={
                           photo.wide
                             ? "(min-width: 768px) 50vw, 100vw"
